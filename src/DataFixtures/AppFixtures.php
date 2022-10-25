@@ -40,6 +40,8 @@ class AppFixtures extends Fixture
                 ->setThickness(0.4 + 0.1 * $i)
                 ->setPrice( 500 + 20 * $i);
 
+            $manager->persist($phone);
+
         }
         $manager->flush();
     }
