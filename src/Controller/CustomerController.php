@@ -6,6 +6,7 @@ use App\Entity\Customer;
 use App\Entity\User;
 use App\Repository\CustomerRepository;
 use App\Repository\UserRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
@@ -28,7 +29,7 @@ class CustomerController extends AbstractController
         return new JsonResponse($jsonCustomerList, Response::HTTP_OK, [], true);
     }
 
-    #[Route('/users/{userId}/customers/{customerId}', name: 'customerDetails')]
+    #[Route('/users/{userId}/customers/{customerId}', name: 'customerDetails', methods: ['GET'])]
     public function getCustomerDetails(int $userId, int $customerId, UserRepository $userRepository, CustomerRepository $customerRepository, SerializerInterface $serializer): JsonResponse
     {
         $user = $userRepository->findBy(['id' => $userId]);
@@ -41,5 +42,14 @@ class CustomerController extends AbstractController
         return new JsonResponse($jsonCustomerList, Response::HTTP_OK, [], true);
     }
 
+    #[Route('/users/{userId}/customers/{customerId}', name: 'deleteCustomer', methods: ['DELETE'])]
+    public function deleteCustomer(int $userId, int $customerId, UserRepository $userRepository, CustomerRepository $customerRepository, EntityManagerInterface $EntityManager): JsonResponse
+    {
+        $user = $userRepository->findOneBy(['id' => $userId]);
+        $customer = $customerRepository->findOneBy(['id' => $customerId, "users" => $user]);
+        $EntityManager->remove($customer);
+        $EntityManager->flush();
 
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+    }
 }
