@@ -70,4 +70,21 @@ class CustomerController extends AbstractController
 
         return new JsonResponse($jsonCustomer, Response::HTTP_CREATED, ["Location" => $location], true);
     }
+
+    #[Route('/users/{userId}/customers/{customerId}', name:"createCustomer", methods: ['PUT'])]
+    public function updateCustomer(int $userId, int $customerId,UserRepository $userRepository, CustomerRepository $customerRepository, Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator): JsonResponse
+    {
+        $user = $userRepository->findBy(['id' => $userId]);
+        $customer = $customerRepository->findOneBy(['id' => $customerId, "users" => $user]);
+        $updateCustomer = $serializer->deserialize($request->getContent(), Customer::class, 'json');
+        $customer->setUsers($user);
+        $entityManager->persist($customer);
+        $entityManager->flush();
+
+        $jsonCustomer = $serializer->serialize($customer, 'json', ['groups' => 'getCustomers']);
+
+        $location = $urlGenerator->generate('api_customerDetails', ['customerId' => $customer->getId(), 'userId' => $user->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
+
+        return new JsonResponse($jsonCustomer, Response::HTTP_CREATED, ["Location" => $location], true);
+    }
 }
