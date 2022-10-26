@@ -9,14 +9,16 @@ use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 
 #[Route('/api', name: 'api_')]
 class CustomerController extends AbstractController
 {
-    #[Route('/users/{userId}/customers', name: 'customerList')]
+    #[Route('/users/{userId}/customers', name: 'customerList', methods: ['GET'])]
     public function getCustomerList(int $userId, UserRepository $userRepository, CustomerRepository $customerRepository, SerializerInterface $serializer): JsonResponse
     {
         $user = $userRepository->findBy(['id' => $userId]);
@@ -43,13 +45,29 @@ class CustomerController extends AbstractController
     }
 
     #[Route('/users/{userId}/customers/{customerId}', name: 'deleteCustomer', methods: ['DELETE'])]
-    public function deleteCustomer(int $userId, int $customerId, UserRepository $userRepository, CustomerRepository $customerRepository, EntityManagerInterface $EntityManager): JsonResponse
+    public function deleteCustomer(int $userId, int $customerId, UserRepository $userRepository, CustomerRepository $customerRepository, EntityManagerInterface $entityManager): JsonResponse
     {
         $user = $userRepository->findOneBy(['id' => $userId]);
         $customer = $customerRepository->findOneBy(['id' => $customerId, "users" => $user]);
-        $EntityManager->remove($customer);
-        $EntityManager->flush();
+        $entityManager->remove($customer);
+        $entityManager->flush();
 
         return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+    }
+
+    #[Route('/users/{id}/customers', name:"createCustomer", methods: ['POST'])]
+    public function createCustomer(User $user, Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator): JsonResponse
+    {
+
+        $customer = $serializer->deserialize($request->getContent(), Customer::class, 'json');
+        $customer->setUsers($user);
+        $entityManager->persist($customer);
+        $entityManager->flush();
+
+        $jsonCustomer = $serializer->serialize($customer, 'json', ['groups' => 'getCustomers']);
+
+        $location = $urlGenerator->generate('api_customerDetails', ['customerId' => $customer->getId(), 'userId' => $user->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
+
+        return new JsonResponse($jsonCustomer, Response::HTTP_CREATED, ["Location" => $location], true);
     }
 }
