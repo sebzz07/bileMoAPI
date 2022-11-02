@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\CustomerRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: CustomerRepository::class)]
 class Customer
@@ -17,14 +18,19 @@ class Customer
 
     #[ORM\Column(length: 255)]
     #[Groups(["getCustomers","getCustomerDetails"])]
+    #[Assert\Length(min: 3, max: 255, minMessage: "The first name must be at least {{ limit }} characters", maxMessage: "The first name must be no more than {{ limit }} characters")]
     private ?string $firstName = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(["getCustomers","getCustomerDetails"])]
+    #[Assert\Length(min: 3, max: 255, minMessage: "The last name must be at least {{ limit }} characters", maxMessage: "The last name must be no more than {{ limit }} characters")]
     private ?string $lastName = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(["getCustomers","getCustomerDetails"])]
+    #[Assert\Email(
+        message: 'The email {{ value }} is not a valid email.',
+    )]
     private ?string $email = null;
 
     #[ORM\Column]
