@@ -6,10 +6,12 @@ use App\Repository\UserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
-class User
+class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -22,8 +24,14 @@ class User
     #[ORM\Column(length: 255)]
     private ?string $contactName = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(type: 'string', length: 180, unique: true)]
     private ?string $email = null;
+
+    #[ORM\Column(type: 'json')]
+    private ?array $roles = [];
+
+    #[ORM\Column(type: 'string')]
+    private ?string $password;
 
     #[ORM\OneToMany(mappedBy: 'users', targetEntity: Customer::class, orphanRemoval: true)]
     private Collection $customers;
@@ -31,6 +39,10 @@ class User
     public function __construct()
     {
         $this->customers = new ArrayCollection();
+    }
+
+    public function getUsername(): string {
+        return $this->getUserIdentifier();
     }
 
     public function getId(): ?int
@@ -75,6 +87,40 @@ class User
     }
 
     /**
+     * @see UserInterface
+     */
+    public function getRoles(): array
+    {
+        $roles = $this->roles;
+        // guarantee every user at least has ROLE_USER
+        $roles[] = 'ROLE_USER';
+
+        return array_unique($roles);
+    }
+
+    public function setRoles(array $roles): self
+    {
+        $this->roles = $roles;
+
+        return $this;
+    }
+
+    /**
+     * @see PasswordAuthenticatedUserInterface
+     */
+    public function getPassword(): string
+    {
+        return $this->password;
+    }
+
+    public function setPassword(string $password): self
+    {
+        $this->password = $password;
+
+        return $this;
+    }
+
+    /**
      * @return Collection<int, Customer>
      */
     public function getCustomers(): Collection
@@ -102,5 +148,19 @@ class User
         }
 
         return $this;
+    }
+
+    /**
+     * @see UserInterface
+     */
+    public function eraseCredentials()
+    {
+        // If you store any temporary, sensitive data on the user, clear it here
+        // $this->plainPassword = null;
+    }
+
+    public function getUserIdentifier(): string
+    {
+        return (string) $this->email;
     }
 }

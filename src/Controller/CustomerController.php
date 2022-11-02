@@ -15,6 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api', name: 'api_')]
 class CustomerController extends AbstractController
@@ -57,11 +58,18 @@ class CustomerController extends AbstractController
     }
 
     #[Route('/users/{id}/customers', name:"createCustomer", methods: ['POST'])]
-    public function createCustomer(User $user, Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator): JsonResponse
+    public function createCustomer(User $user, Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator): JsonResponse
     {
 
         $customer = $serializer->deserialize($request->getContent(), Customer::class, 'json');
         $customer->setUsers($user);
+
+        $errors = $validator->validate($customer);
+
+        if ($errors->count() > 0) {
+            return new JsonResponse($serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
+        }
+
         $entityManager->persist($customer);
         $entityManager->flush();
 
@@ -73,7 +81,7 @@ class CustomerController extends AbstractController
     }
 
     #[Route('/users/{userId}/customers/{customerId}', name:"createCustomer", methods: ['PUT'])]
-    public function updateCustomer(int $userId, int $customerId,UserRepository $userRepository, CustomerRepository $customerRepository, Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator): JsonResponse
+    public function updateCustomer(int $userId, int $customerId,UserRepository $userRepository, CustomerRepository $customerRepository, Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator): JsonResponse
     {
 
         $user = $userRepository->findBy(['id' => $userId]);
@@ -86,6 +94,13 @@ class CustomerController extends AbstractController
             Customer::class,
             'json',
             [AbstractNormalizer::OBJECT_TO_POPULATE => $currentCustomer]);
+
+        $errors = $validator->validate($updatedCustomer
+        );
+
+        if ($errors->count() > 0) {
+            return new JsonResponse($serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
+        }
 
         $entityManager->persist($updatedCustomer);
         $entityManager->flush();

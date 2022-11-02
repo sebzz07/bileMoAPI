@@ -7,38 +7,48 @@ use App\Entity\Phone;
 use App\Entity\User;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class AppFixtures extends Fixture
 {
+    private UserPasswordHasherInterface $userPasswordHasher;
+
+    public function __construct(UserPasswordHasherInterface $userPasswordHasher)
+    {
+        $this->userPasswordHasher = $userPasswordHasher;
+    }
+
     public function load(ObjectManager $manager): void
     {
-        for ($i = 1; $i <= 10; $i++) {
+        for ($i = 1; $i <= 9; $i++) {
             $user = new User();
-            $user->setCompagnyName('Compagny n°'. $i)
+            $user->setCompagnyName('Compagny n°' . $i)
                 ->setContactName('name of compagny n°' . $i)
                 ->setEmail('emailofcompagny' . $i . "@email.com");
+            $user->setRoles(["ROLE_USER"]);
+            $user->setPassword($this->userPasswordHasher->hashPassword($user, "password"));
 
-            for($j = 1; $j <= 10; $j++){
+            for ($j = 1; $j <= 8; $j++) {
                 $customer = new Customer();
-                $customer->setFirstName('FirstName' .$i. $j)
-                    ->setLastName('LastName' .$i. $j)
+                $customer->setFirstName('FirstName' . $i . $j)
+                    ->setLastName('LastName' . $i . $j)
                     ->setEmail('emailofcustomer' . $i . $j . "@email.com")
                     ->setUsers($user);
                 $manager->persist($customer);
 
-        }
+            }
             $manager->persist($user);
         }
-        for ($i = 1; $i <= 10; $i++) {
+        for ($k = 1; $k <= 10; $k++) {
             $phone = new Phone();
-            $phone->setBrand("brand" . $i)
-                ->setModel('model n°' . $i)
-                ->setDescription('description of the phone n°' . $i)
-                ->setColor('color the phone°' . $i)
-                ->setHeight( 9 + 0.3 * $i)
-                ->setLenght(5 + 0.2 * $i)
-                ->setThickness(0.4 + 0.1 * $i)
-                ->setPrice( 500 + 20 * $i);
+            $phone->setBrand("brand" . $k)
+                ->setModel('model n°' . $k)
+                ->setDescription('description of the phone n°' . $k)
+                ->setColor('color the phone°' . $k)
+                ->setHeight( 9 + 0.3 * $k)
+                ->setLenght(5 + 0.2 * $k)
+                ->setThickness(0.4 + 0.1 * $k)
+                ->setPrice( 500 + 20 * $k);
 
             $manager->persist($phone);
 
