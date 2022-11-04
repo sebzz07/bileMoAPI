@@ -17,9 +17,6 @@ class PhoneController extends AbstractController
     public function getPhoneList(PhoneRepository $phoneRepository, SerializerInterface $serializer): JsonResponse
     {
         $phoneList = $phoneRepository->findAll();
-        if(empty($phoneList)){
-            return new JsonResponse(null, Response::HTTP_NOT_FOUND);
-        }
         $jsonPhoneList = $serializer->serialize($phoneList, 'json',['groups' => 'getPhones']);
         return new JsonResponse($jsonPhoneList, Response::HTTP_OK, [], true);
     }

@@ -7,6 +7,7 @@ use App\Entity\User;
 use App\Repository\CustomerRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Entity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,9 +22,9 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 class CustomerController extends AbstractController
 {
     #[Route('/users/{userId}/customers', name: 'customerList', methods: ['GET'])]
-    public function getCustomerList(int $userId, UserRepository $userRepository, CustomerRepository $customerRepository, SerializerInterface $serializer): JsonResponse
+    #[Entity('user', options: ['id' => 'userId'])]
+    public function getCustomerList(User $user, UserRepository $userRepository, CustomerRepository $customerRepository, SerializerInterface $serializer): JsonResponse
     {
-        $user = $userRepository->findBy(['id' => $userId]);
         $customerList = $customerRepository->findBy(["users" => $user]);
 
         if (empty($customerList)) {
@@ -60,9 +61,9 @@ class CustomerController extends AbstractController
     #[Route('/users/{id}/customers', name:"createCustomer", methods: ['POST'])]
     public function createCustomer(User $user, Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator): JsonResponse
     {
-
+        /** @var Customer $customer */
         $customer = $serializer->deserialize($request->getContent(), Customer::class, 'json');
-        $customer->setUsers($user);
+        $customer->setUser($user);
 
         $errors = $validator->validate($customer);
 

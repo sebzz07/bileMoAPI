@@ -33,7 +33,7 @@ class AppFixtures extends Fixture
                 $customer->setFirstName('FirstName' . $i . $j)
                     ->setLastName('LastName' . $i . $j)
                     ->setEmail('emailofcustomer' . $i . $j . "@email.com")
-                    ->setUsers($user);
+                    ->setUser($user);
                 $manager->persist($customer);
 
             }

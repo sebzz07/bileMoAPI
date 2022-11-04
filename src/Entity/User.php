@@ -132,7 +132,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         if (!$this->customers->contains($customer)) {
             $this->customers->add($customer);
-            $customer->setUsers($this);
+            $customer->setUser($this);
         }
 
         return $this;
@@ -142,8 +142,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         if ($this->customers->removeElement($customer)) {
             // set the owning side to null (unless already changed)
-            if ($customer->getUsers() === $this) {
-                $customer->setUsers(null);
+            if ($customer->getUser() === $this) {
+                $customer->setUser(null);
             }
         }
 
