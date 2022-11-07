@@ -8,6 +8,7 @@ use App\Repository\CustomerRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Entity;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,11 +22,12 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 #[Route('/api', name: 'api_')]
 class CustomerController extends AbstractController
 {
-    #[Route('/users/{userId}/customers', name: 'customerList', methods: ['GET'])]
-    #[Entity('user', options: ['id' => 'userId'])]
-    public function getCustomerList(User $user, UserRepository $userRepository, CustomerRepository $customerRepository, SerializerInterface $serializer): JsonResponse
+    #[Route('/customers', name: 'customerList', methods: ['GET'])]
+    #[IsGranted('ROLE_USER', message: "You don't have enough rights")]
+    public function getCustomerList( UserRepository $userRepository, CustomerRepository $customerRepository, SerializerInterface $serializer): JsonResponse
     {
-        $customerList = $customerRepository->findBy(["users" => $user]);
+        $user = $this->getUser();
+        $customerList = $customerRepository->findBy(["user" => $user]);
 
         if (empty($customerList)) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
@@ -34,11 +36,12 @@ class CustomerController extends AbstractController
         return new JsonResponse($jsonCustomerList, Response::HTTP_OK, [], true);
     }
 
-    #[Route('/users/{userId}/customers/{customerId}', name: 'customerDetails', methods: ['GET'])]
-    public function getCustomerDetails(int $userId, int $customerId, UserRepository $userRepository, CustomerRepository $customerRepository, SerializerInterface $serializer): JsonResponse
+    #[Route('/customers/{id}', name: 'customerDetails', methods: ['GET'])]
+    #[IsGranted('ROLE_USER', message: "You don't have enough rights")]
+    public function getCustomerDetails(Customer $customer, CustomerRepository $customerRepository, SerializerInterface $serializer): JsonResponse
     {
-        $user = $userRepository->findBy(['id' => $userId]);
-        $customerDetails = $customerRepository->findBy(['id' => $customerId, "users" => $user]);
+        $user = $this->getUser();
+        $customerDetails = $customerRepository->findBy(['id' => $customer->getId(), "user" => $user]);
 
         if (empty($customerDetails)) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
@@ -47,20 +50,24 @@ class CustomerController extends AbstractController
         return new JsonResponse($jsonCustomerList, Response::HTTP_OK, [], true);
     }
 
-    #[Route('/users/{userId}/customers/{customerId}', name: 'deleteCustomer', methods: ['DELETE'])]
-    public function deleteCustomer(int $userId, int $customerId, UserRepository $userRepository, CustomerRepository $customerRepository, EntityManagerInterface $entityManager): JsonResponse
+    #[Route('/customers/{customerId}', name: 'deleteCustomer', methods: ['DELETE'])]
+    #[IsGranted('ROLE_USER', message: "You don't have enough rights")]
+    public function deleteCustomer(Customer $customer, CustomerRepository $customerRepository, EntityManagerInterface $entityManager): JsonResponse
     {
-        $user = $userRepository->findOneBy(['id' => $userId]);
-        $customer = $customerRepository->findOneBy(['id' => $customerId, "users" => $user]);
+        $user = $this->getUser();
+        $customer = $customerRepository->findOneBy(['id' => $customer->getId(), "user" => $user]);
         $entityManager->remove($customer);
         $entityManager->flush();
 
         return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
 
-    #[Route('/users/{id}/customers', name:"createCustomer", methods: ['POST'])]
-    public function createCustomer(User $user, Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator): JsonResponse
+    #[Route('/customers', name:"createCustomer", methods: ['POST'])]
+    #[IsGranted('ROLE_USER', message: "You don't have enough rights")]
+    public function createCustomer(Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator): JsonResponse
     {
+        /** @var User $user */
+        $user = $this->getUser();
         /** @var Customer $customer */
         $customer = $serializer->deserialize($request->getContent(), Customer::class, 'json');
         $customer->setUser($user);
@@ -81,12 +88,13 @@ class CustomerController extends AbstractController
         return new JsonResponse($jsonCustomer, Response::HTTP_CREATED, ["Location" => $location], true);
     }
 
-    #[Route('/users/{userId}/customers/{customerId}', name:"createCustomer", methods: ['PUT'])]
-    public function updateCustomer(int $userId, int $customerId,UserRepository $userRepository, CustomerRepository $customerRepository, Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator): JsonResponse
+    #[Route('customers/{id}', name:"createCustomer", methods: ['PUT'])]
+    #[IsGranted('ROLE_USER', message: "You don't have enough rights")]
+    public function updateCustomer(Customer $customer, UserRepository $userRepository, CustomerRepository $customerRepository, Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator): JsonResponse
     {
 
-        $user = $userRepository->findBy(['id' => $userId]);
-        $currentCustomer = $customerRepository->findOneBy(['id' => $customerId, "users" => $user]);
+        $user = $this->getUser();
+        $currentCustomer = $customerRepository->findOneBy(['id' => $customer->getId(), "users" => $user]);
 
         if (empty($currentCustomer)) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
