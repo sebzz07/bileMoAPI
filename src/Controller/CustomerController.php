@@ -18,16 +18,30 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Contracts\Cache\ItemInterface;
+use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 #[Route('/api', name: 'api_')]
 class CustomerController extends AbstractController
 {
     #[Route('/customers', name: 'customerList', methods: ['GET'])]
     #[IsGranted('ROLE_USER', message: "You don't have enough rights")]
-    public function getCustomerList( UserRepository $userRepository, CustomerRepository $customerRepository, SerializerInterface $serializer): JsonResponse
+    public function getCustomerList(Request $request, UserRepository $userRepository, CustomerRepository $customerRepository, SerializerInterface $serializer, TagAwareCacheInterface $cachePool): JsonResponse
     {
+        /** @var User $user */
         $user = $this->getUser();
-        $customerList = $customerRepository->findBy(["user" => $user]);
+        $userId = $user->getId();
+        // $customerList = $customerRepository->findBy(["user" => $user]);
+
+        $offset = $request->get('offset', 1);
+        $limit = $request->get('limit', 3);
+        // $customerList = $customerRepository->findAllWithPagination($userId, $offset, $limit);
+
+        $idCache = "getAllCustomers-" . $offset . "-" . $limit;
+        $customerList = $cachePool->get($idCache, function (ItemInterface $item) use ($customerRepository, $offset, $limit, $userId) {
+            $item->tag("customersCache");
+            return $customerRepository->findAllWithPagination($userId, $offset, $limit);
+        });
 
         if (empty($customerList)) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
@@ -40,6 +54,7 @@ class CustomerController extends AbstractController
     #[IsGranted('ROLE_USER', message: "You don't have enough rights")]
     public function getCustomerDetails(Customer $customer, CustomerRepository $customerRepository, SerializerInterface $serializer): JsonResponse
     {
+        /** @var User $user */
         $user = $this->getUser();
         $customerDetails = $customerRepository->findBy(['id' => $customer->getId(), "user" => $user]);
 
@@ -52,10 +67,12 @@ class CustomerController extends AbstractController
 
     #[Route('/customers/{customerId}', name: 'deleteCustomer', methods: ['DELETE'])]
     #[IsGranted('ROLE_USER', message: "You don't have enough rights")]
-    public function deleteCustomer(Customer $customer, CustomerRepository $customerRepository, EntityManagerInterface $entityManager): JsonResponse
+    public function deleteCustomer(Customer $customer, CustomerRepository $customerRepository, EntityManagerInterface $entityManager, TagAwareCacheInterface $cachePool): JsonResponse
     {
+        /** @var User $user */
         $user = $this->getUser();
         $customer = $customerRepository->findOneBy(['id' => $customer->getId(), "user" => $user]);
+        $cachePool->invalidateTags(["customersCache"]);
         $entityManager->remove($customer);
         $entityManager->flush();
 
@@ -64,7 +81,7 @@ class CustomerController extends AbstractController
 
     #[Route('/customers', name:"createCustomer", methods: ['POST'])]
     #[IsGranted('ROLE_USER', message: "You don't have enough rights")]
-    public function createCustomer(Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator): JsonResponse
+    public function createCustomer(Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator, TagAwareCacheInterface $cachePool): JsonResponse
     {
         /** @var User $user */
         $user = $this->getUser();
@@ -80,7 +97,7 @@ class CustomerController extends AbstractController
 
         $entityManager->persist($customer);
         $entityManager->flush();
-
+        $cachePool->invalidateTags(["customersCache"]);
         $jsonCustomer = $serializer->serialize($customer, 'json', ['groups' => 'getCustomers']);
 
         $location = $urlGenerator->generate('api_customerDetails', ['customerId' => $customer->getId(), 'userId' => $user->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
@@ -90,7 +107,7 @@ class CustomerController extends AbstractController
 
     #[Route('customers/{id}', name:"createCustomer", methods: ['PUT'])]
     #[IsGranted('ROLE_USER', message: "You don't have enough rights")]
-    public function updateCustomer(Customer $customer, UserRepository $userRepository, CustomerRepository $customerRepository, Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator): JsonResponse
+    public function updateCustomer(Customer $customer, UserRepository $userRepository, CustomerRepository $customerRepository, Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator, TagAwareCacheInterface $cachePool): JsonResponse
     {
 
         $user = $this->getUser();
@@ -113,7 +130,7 @@ class CustomerController extends AbstractController
 
         $entityManager->persist($updatedCustomer);
         $entityManager->flush();
-
+        $cachePool->invalidateTags(["customersCache"]);
         return new JsonResponse(null, JsonResponse::HTTP_NO_CONTENT);
     }
 }
