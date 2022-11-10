@@ -26,7 +26,7 @@ class CustomerController extends AbstractController
 {
     #[Route('/customers', name: 'customerList', methods: ['GET'])]
     #[IsGranted('ROLE_USER', message: "You don't have enough rights")]
-    public function getCustomerList(Request $request, UserRepository $userRepository, CustomerRepository $customerRepository, SerializerInterface $serializer, TagAwareCacheInterface $cachePool): JsonResponse
+    public function getCustomerList(Request $request, CustomerRepository $customerRepository, SerializerInterface $serializer, TagAwareCacheInterface $cachePool): JsonResponse
     {
         /** @var User $user */
         $user = $this->getUser();
@@ -37,7 +37,7 @@ class CustomerController extends AbstractController
         $limit = $request->get('limit', 3);
         // $customerList = $customerRepository->findAllWithPagination($userId, $offset, $limit);
 
-        $idCache = "getAllCustomers-" . $offset . "-" . $limit;
+        $idCache = "getAllCustomers-" . $offset . "-" . $limit . "-userId" . $userId;
         $customerList = $cachePool->get($idCache, function (ItemInterface $item) use ($customerRepository, $offset, $limit, $userId) {
             $item->tag("customersCache");
             return $customerRepository->findAllWithPagination($userId, $offset, $limit);
@@ -50,36 +50,7 @@ class CustomerController extends AbstractController
         return new JsonResponse($jsonCustomerList, Response::HTTP_OK, [], true);
     }
 
-    #[Route('/customers/{id}', name: 'customerDetails', methods: ['GET'])]
-    #[IsGranted('ROLE_USER', message: "You don't have enough rights")]
-    public function getCustomerDetails(Customer $customer, CustomerRepository $customerRepository, SerializerInterface $serializer): JsonResponse
-    {
-        /** @var User $user */
-        $user = $this->getUser();
-        $customerDetails = $customerRepository->findBy(['id' => $customer->getId(), "user" => $user]);
-
-        if (empty($customerDetails)) {
-            return new JsonResponse(null, Response::HTTP_NOT_FOUND);
-        }
-        $jsonCustomerList = $serializer->serialize($customerDetails, 'json', ['groups' => 'getCustomerDetails']);
-        return new JsonResponse($jsonCustomerList, Response::HTTP_OK, [], true);
-    }
-
-    #[Route('/customers/{customerId}', name: 'deleteCustomer', methods: ['DELETE'])]
-    #[IsGranted('ROLE_USER', message: "You don't have enough rights")]
-    public function deleteCustomer(Customer $customer, CustomerRepository $customerRepository, EntityManagerInterface $entityManager, TagAwareCacheInterface $cachePool): JsonResponse
-    {
-        /** @var User $user */
-        $user = $this->getUser();
-        $customer = $customerRepository->findOneBy(['id' => $customer->getId(), "user" => $user]);
-        $cachePool->invalidateTags(["customersCache"]);
-        $entityManager->remove($customer);
-        $entityManager->flush();
-
-        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
-    }
-
-    #[Route('/customers', name:"createCustomer", methods: ['POST'])]
+    #[Route('/customers', name: 'createCustomer', methods: ['POST'])]
     #[IsGranted('ROLE_USER', message: "You don't have enough rights")]
     public function createCustomer(Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator, TagAwareCacheInterface $cachePool): JsonResponse
     {
@@ -100,12 +71,41 @@ class CustomerController extends AbstractController
         $cachePool->invalidateTags(["customersCache"]);
         $jsonCustomer = $serializer->serialize($customer, 'json', ['groups' => 'getCustomers']);
 
-        $location = $urlGenerator->generate('api_customerDetails', ['customerId' => $customer->getId(), 'userId' => $user->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
+        $location = $urlGenerator->generate('api_customerDetails', ['id' => $customer->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
 
         return new JsonResponse($jsonCustomer, Response::HTTP_CREATED, ["Location" => $location], true);
     }
 
-    #[Route('customers/{id}', name:"createCustomer", methods: ['PUT'])]
+    #[Route('/customers/{id}', name: 'customerDetails', methods: ['GET'])]
+    #[IsGranted('ROLE_USER', message: "You don't have enough rights")]
+    public function getCustomerDetails(Customer $customer, CustomerRepository $customerRepository, SerializerInterface $serializer): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $customerDetails = $customerRepository->findBy(['id' => $customer->getId(), "user" => $user]);
+
+        if (empty($customerDetails)) {
+            return new JsonResponse(null, Response::HTTP_NOT_FOUND);
+        }
+        $jsonCustomerList = $serializer->serialize($customerDetails, 'json', ['groups' => 'getCustomerDetails']);
+        return new JsonResponse($jsonCustomerList, Response::HTTP_OK, [], true);
+    }
+
+    #[Route('/customers/{id}', name: 'deleteCustomer', methods: ['DELETE'])]
+    #[IsGranted('ROLE_USER', message: "You don't have enough rights")]
+    public function deleteCustomer(Customer $customer, CustomerRepository $customerRepository, EntityManagerInterface $entityManager, TagAwareCacheInterface $cachePool): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $customer = $customerRepository->findOneBy(['id' => $customer->getId(), "user" => $user]);
+        $cachePool->invalidateTags(["customersCache"]);
+        $entityManager->remove($customer);
+        $entityManager->flush();
+
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+    }
+
+    #[Route('customers/{id}', name:"updateCustomer", methods: ['PUT'])]
     #[IsGranted('ROLE_USER', message: "You don't have enough rights")]
     public function updateCustomer(Customer $customer, UserRepository $userRepository, CustomerRepository $customerRepository, Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator, TagAwareCacheInterface $cachePool): JsonResponse
     {

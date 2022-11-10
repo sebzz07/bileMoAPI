@@ -41,8 +41,8 @@ class CustomerRepository extends ServiceEntityRepository
 
     public function findAllWithPagination($userId, $offset, $limit) {
         $qb = $this->createQueryBuilder('b')
-            ->andWhere('b.user = :val')
-            ->setParameter('val', $userId)
+            ->andWhere('b.user = :user')
+            ->setParameter('user', $userId)
             ->setFirstResult(($offset - 1) * $limit)
             ->setMaxResults($limit);
         return $qb->getQuery()->getResult();
