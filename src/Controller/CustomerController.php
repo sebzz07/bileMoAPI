@@ -39,7 +39,7 @@ class CustomerController extends AbstractController
 
         $idCache = "getAllCustomers-" . $offset . "-" . $limit . "-userId" . $userId;
         $customerList = $cachePool->get($idCache, function (ItemInterface $item) use ($customerRepository, $offset, $limit, $userId) {
-            $item->tag("customersCache");
+            $item->tag(["customersCache", "customersCache-". $userId]);
             return $customerRepository->findAllWithPagination($userId, $offset, $limit);
         });
 
@@ -68,7 +68,7 @@ class CustomerController extends AbstractController
 
         $entityManager->persist($customer);
         $entityManager->flush();
-        $cachePool->invalidateTags(["customersCache"]);
+        $cachePool->invalidateTags(["customersCache-". $user->getId()]);
         $jsonCustomer = $serializer->serialize($customer, 'json', ['groups' => 'getCustomers']);
 
         $location = $urlGenerator->generate('api_customerDetails', ['id' => $customer->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
@@ -82,9 +82,9 @@ class CustomerController extends AbstractController
     {
         /** @var User $user */
         $user = $this->getUser();
-        $customerDetails = $customerRepository->findBy(['id' => $customer->getId(), "user" => $user]);
+        $customerDetails = $customerRepository->findOneBy(['id' => $customer->getId(), "user" => $user]);
 
-        if (empty($customerDetails)) {
+        if (null === $customerDetails) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
         }
         $jsonCustomerList = $serializer->serialize($customerDetails, 'json', ['groups' => 'getCustomerDetails']);
@@ -98,7 +98,7 @@ class CustomerController extends AbstractController
         /** @var User $user */
         $user = $this->getUser();
         $customer = $customerRepository->findOneBy(['id' => $customer->getId(), "user" => $user]);
-        $cachePool->invalidateTags(["customersCache"]);
+        $cachePool->invalidateTags(["customersCache-". $user->getId()]);
         $entityManager->remove($customer);
         $entityManager->flush();
 
@@ -109,7 +109,7 @@ class CustomerController extends AbstractController
     #[IsGranted('ROLE_USER', message: "You don't have enough rights")]
     public function updateCustomer(Customer $customer, UserRepository $userRepository, CustomerRepository $customerRepository, Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator, TagAwareCacheInterface $cachePool): JsonResponse
     {
-
+        /** @var User $user */
         $user = $this->getUser();
         $currentCustomer = $customerRepository->findOneBy(['id' => $customer->getId(), "users" => $user]);
 
@@ -130,7 +130,7 @@ class CustomerController extends AbstractController
 
         $entityManager->persist($updatedCustomer);
         $entityManager->flush();
-        $cachePool->invalidateTags(["customersCache"]);
+        $cachePool->invalidateTags(["customersCache-". $user->getId()]);
         return new JsonResponse(null, JsonResponse::HTTP_NO_CONTENT);
     }
 }
