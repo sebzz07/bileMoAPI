@@ -4,8 +4,20 @@ namespace App\Entity;
 
 use App\Repository\PhoneRepository;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups;
+use JMS\Serializer\Annotation\Groups;
+use Hateoas\Configuration\Annotation as Hateoas;
 
+/**
+ * @Hateoas\Relation(
+ *     "self",
+ *     href = @Hateoas\Route(
+ *         "api_phoneDetails",
+ *         parameters = { "id" = "expr(object.getId())" }
+ *     ),
+ *     exclusion = @Hateoas\Exclusion(groups="getPhones", excludeIf="expr(not is_granted('ROLE_USER'))"),
+ * )
+ *
+ */
 #[ORM\Entity(repositoryClass: PhoneRepository::class)]
 class Phone
 {

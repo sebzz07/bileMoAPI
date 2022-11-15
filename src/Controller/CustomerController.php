@@ -5,9 +5,7 @@ namespace App\Controller;
 use App\Entity\Customer;
 use App\Entity\User;
 use App\Repository\CustomerRepository;
-use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\Entity;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -15,8 +13,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\SerializerInterface;
+use JMS\Serializer\SerializationContext;
+use JMS\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
@@ -39,14 +37,15 @@ class CustomerController extends AbstractController
 
         $idCache = "getAllCustomers-" . $offset . "-" . $limit . "-userId" . $userId;
         $customerList = $cachePool->get($idCache, function (ItemInterface $item) use ($customerRepository, $offset, $limit, $userId) {
-            $item->tag(["customersCache", "customersCache-". $userId]);
+            $item->tag(["customersCache", "customersCache-" . $userId]);
             return $customerRepository->findAllWithPagination($userId, $offset, $limit);
         });
 
         if (empty($customerList)) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
         }
-        $jsonCustomerList = $serializer->serialize($customerList, 'json', ['groups' => 'getCustomers']);
+        $context = SerializationContext::create()->setGroups(['getCustomers']);
+        $jsonCustomerList = $serializer->serialize($customerList, 'json', $context);
         return new JsonResponse($jsonCustomerList, Response::HTTP_OK, [], true);
     }
 
@@ -68,8 +67,9 @@ class CustomerController extends AbstractController
 
         $entityManager->persist($customer);
         $entityManager->flush();
-        $cachePool->invalidateTags(["customersCache-". $user->getId()]);
-        $jsonCustomer = $serializer->serialize($customer, 'json', ['groups' => 'getCustomers']);
+        $cachePool->invalidateTags(["customersCache-" . $user->getId()]);
+        $context = SerializationContext::create()->setGroups(['getCustomers']);
+        $jsonCustomer = $serializer->serialize($customer, 'json', $context);
 
         $location = $urlGenerator->generate('api_customerDetails', ['id' => $customer->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
 
@@ -87,7 +87,8 @@ class CustomerController extends AbstractController
         if (null === $customerDetails) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
         }
-        $jsonCustomerList = $serializer->serialize($customerDetails, 'json', ['groups' => 'getCustomerDetails']);
+        $context = SerializationContext::create()->setGroups(['getCustomers']);
+        $jsonCustomerList = $serializer->serialize($customerDetails, 'json', $context);
         return new JsonResponse($jsonCustomerList, Response::HTTP_OK, [], true);
     }
 
@@ -98,28 +99,34 @@ class CustomerController extends AbstractController
         /** @var User $user */
         $user = $this->getUser();
         $customer = $customerRepository->findOneBy(['id' => $customer->getId(), "user" => $user]);
-        $cachePool->invalidateTags(["customersCache-". $user->getId()]);
+        $cachePool->invalidateTags(["customersCache-" . $user->getId()]);
         $entityManager->remove($customer);
         $entityManager->flush();
 
         return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
 
-    #[Route('customers/{id}', name:"updateCustomer", methods: ['PUT'])]
+    #[Route('/customers/{id}', name: "updateCustomer", methods: ['PUT'])]
     #[IsGranted('ROLE_USER', message: "You don't have enough rights")]
-    public function updateCustomer(Customer $customer, UserRepository $userRepository, CustomerRepository $customerRepository, Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator, TagAwareCacheInterface $cachePool): JsonResponse
+    public function updateCustomer(Customer $customer, CustomerRepository $customerRepository, Request $request, SerializerInterface $serializer, EntityManagerInterface $entityManager, ValidatorInterface $validator, TagAwareCacheInterface $cachePool): JsonResponse
     {
         /** @var User $user */
         $user = $this->getUser();
-        $currentCustomer = $customerRepository->findOneBy(['id' => $customer->getId(), "users" => $user]);
+        $updatedCustomer = $customerRepository->findOneBy(['id' => $customer->getId(), "user" => $user]);
 
-        if (empty($currentCustomer)) {
+        if (null === $updatedCustomer) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
         }
-        $updatedCustomer = $serializer->deserialize($request->getContent(),
+        /** @var Customer $newCustomer */
+        $newCustomer = $serializer->deserialize($request->getContent(),
             Customer::class,
-            'json',
-            [AbstractNormalizer::OBJECT_TO_POPULATE => $currentCustomer]);
+            'json'
+        );
+        /** @var Customer $updatedCustomer */
+        $updatedCustomer->setEmail($newCustomer->getEmail());
+        $updatedCustomer->setLastName($newCustomer->getLastName());
+        $updatedCustomer->setFirstName($newCustomer->getFirstName());
+
 
         $errors = $validator->validate($updatedCustomer
         );
@@ -130,7 +137,7 @@ class CustomerController extends AbstractController
 
         $entityManager->persist($updatedCustomer);
         $entityManager->flush();
-        $cachePool->invalidateTags(["customersCache-". $user->getId()]);
+        $cachePool->invalidateTags(["customersCache-" . $user->getId()]);
         return new JsonResponse(null, JsonResponse::HTTP_NO_CONTENT);
     }
 }

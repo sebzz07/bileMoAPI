@@ -45,7 +45,7 @@ class AppFixtures extends Fixture
                 ->setModel('model n°' . $k)
                 ->setDescription('description of the phone n°' . $k)
                 ->setColor('color the phone°' . $k)
-                ->setHeight( 9 + 0.3 * $k)
+                ->setHeight( 11 + 0.3 * $k)
                 ->setLenght(5 + 0.2 * $k)
                 ->setThickness(0.4 + 0.1 * $k)
                 ->setPrice( 500 + 20 * $k);
