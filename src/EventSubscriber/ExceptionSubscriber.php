@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\EventSubscriber;
 
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -10,6 +12,13 @@ use Symfony\Component\HttpKernel\KernelEvents;
 
 class ExceptionSubscriber implements EventSubscriberInterface
 {
+    public static function getSubscribedEvents(): array
+    {
+        return [
+            // KernelEvents::EXCEPTION => 'onKernelException',
+        ];
+    }
+
     public function onKernelException(ExceptionEvent $event): void
     {
         $exception = $event->getThrowable();
@@ -17,24 +26,17 @@ class ExceptionSubscriber implements EventSubscriberInterface
         if ($exception instanceof HttpException) {
             $data = [
                 'status' => $exception->getStatusCode(),
-                'message' => $exception->getMessage()
+                'message' => $exception->getMessage(),
             ];
 
             $event->setResponse(new JsonResponse($data));
         } else {
             $data = [
                 'status' => 500, // The status don't exist because it isn't an exception so we set 500 by default.
-                'message' => $exception->getMessage()
+                'message' => $exception->getMessage(),
             ];
 
             $event->setResponse(new JsonResponse($data));
         }
-    }
-
-    public static function getSubscribedEvents(): array
-    {
-        return [
-            KernelEvents::EXCEPTION => 'onKernelException',
-        ];
     }
 }

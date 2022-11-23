@@ -1,12 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity;
 
 use App\Repository\CustomerRepository;
 use Doctrine\ORM\Mapping as ORM;
-use JMS\Serializer\Annotation\Groups;
-use Symfony\Component\Validator\Constraints as Assert;
 use Hateoas\Configuration\Annotation as Hateoas;
+use JMS\Serializer\Annotation\Groups;
+use OpenApi\Attributes as OA;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @Hateoas\Relation(
@@ -17,7 +20,6 @@ use Hateoas\Configuration\Annotation as Hateoas;
  *     ),
  *     exclusion = @Hateoas\Exclusion(groups="getCustomers", excludeIf="expr(not is_granted('ROLE_USER'))"),
  * )
- *
  * @Hateoas\Relation(
  *     "delete",
  *     href = @Hateoas\Route(
@@ -26,7 +28,6 @@ use Hateoas\Configuration\Annotation as Hateoas;
  *     ),
  *     exclusion = @Hateoas\Exclusion(groups="getCustomers", excludeIf="expr(not is_granted('ROLE_USER'))"),
  * )
- *
  * @Hateoas\Relation(
  *     "update",
  *     href = @Hateoas\Route(
@@ -37,44 +38,49 @@ use Hateoas\Configuration\Annotation as Hateoas;
  * )
  */
 #[ORM\Entity(repositoryClass: CustomerRepository::class)]
+#[ORM\HasLifecycleCallbacks]
 class Customer
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(["getCustomers","getCustomerDetails"])]
+    #[Groups(['getCustomers', 'getCustomerDetails'])]
+    #[OA\Property(description: 'The unique identifier of the customer.')]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["getCustomers","getCustomerDetails"])]
-    #[Assert\Length(min: 3, max: 255, minMessage: "The first name must be at least {{ limit }} characters", maxMessage: "The first name must be no more than {{ limit }} characters")]
+    #[Groups(['getCustomers', 'getCustomerDetails', 'createCustomer'])]
+    #[Assert\Length(min: 3, max: 255, minMessage: 'The first name must be at least {{ limit }} characters', maxMessage: 'The first name must be no more than {{ limit }} characters')]
+    #[OA\Property(type: 'string', maxLength: 255, minLength: 3)]
     private ?string $firstName = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["getCustomers","getCustomerDetails"])]
-    #[Assert\Length(min: 3, max: 255, minMessage: "The last name must be at least {{ limit }} characters", maxMessage: "The last name must be no more than {{ limit }} characters")]
+    #[Groups(['getCustomers', 'getCustomerDetails', 'createCustomer'])]
+    #[Assert\Length(min: 3, max: 255, minMessage: 'The last name must be at least {{ limit }} characters', maxMessage: 'The last name must be no more than {{ limit }} characters')]
+    #[OA\Property(type: 'string', maxLength: 255, minLength: 3)]
     private ?string $lastName = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["getCustomers","getCustomerDetails"])]
+    #[Groups(['getCustomers', 'getCustomerDetails', 'createCustomer'])]
     #[Assert\Email(
         message: 'The email {{ value }} is not a valid email.',
     )]
+    #[OA\Property(type: 'string', example: 'email@provider.com')]
     private ?string $email = null;
 
     #[ORM\Column]
-    #[Groups(["getCustomerDetails"])]
-    private ?\DateTimeImmutable $createdAt = null;
+    #[Groups(['getCustomerDetails'])]
+    #[OA\Property(description: 'The date of creation the customer.')]
+    private ?\DateTimeImmutable $createdAt;
 
     #[ORM\ManyToOne(inversedBy: 'customers')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?user $user = null;
+    private ?User $user = null;
 
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
     }
-
 
     public function getId(): ?int
     {
@@ -117,24 +123,23 @@ class Customer
         return $this;
     }
 
+    #[ORM\PrePersist]
+    public function setCreatedAt(): void
+    {
+        $this->createdAt = new \DateTimeImmutable();
+    }
+
     public function getCreatedAt(): ?\DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(\DateTimeImmutable $createdAt): self
-    {
-        $this->createdAt = $createdAt;
-
-        return $this;
-    }
-
-    public function getUser(): ?user
+    public function getUser(): ?User
     {
         return $this->user;
     }
 
-    public function setUser(?user $user): self
+    public function setUser(?User $user): self
     {
         $this->user = $user;
 

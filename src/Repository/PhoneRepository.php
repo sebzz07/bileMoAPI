@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Repository;
 
 use App\Entity\Phone;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -39,11 +42,9 @@ class PhoneRepository extends ServiceEntityRepository
         }
     }
 
-    public function findAllWithPagination($offset, $limit) {
-        $qb = $this->createQueryBuilder('b')
-            ->setFirstResult(($offset - 1) * $limit)
-            ->setMaxResults($limit);
-        return $qb->getQuery()->getResult();
+    public function findAllQueryBuilder(): QueryBuilder
+    {
+        return $this->createQueryBuilder('b');
     }
 
 //    /**

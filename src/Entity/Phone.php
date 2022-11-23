@@ -1,11 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity;
 
 use App\Repository\PhoneRepository;
 use Doctrine\ORM\Mapping as ORM;
-use JMS\Serializer\Annotation\Groups;
 use Hateoas\Configuration\Annotation as Hateoas;
+use JMS\Serializer\Annotation\Groups;
+use OpenApi\Attributes as OA;
 
 /**
  * @Hateoas\Relation(
@@ -16,7 +19,6 @@ use Hateoas\Configuration\Annotation as Hateoas;
  *     ),
  *     exclusion = @Hateoas\Exclusion(groups="getPhones", excludeIf="expr(not is_granted('ROLE_USER'))"),
  * )
- *
  */
 #[ORM\Entity(repositoryClass: PhoneRepository::class)]
 class Phone
@@ -24,34 +26,45 @@ class Phone
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(["getPhones"])]
+    #[Groups(['getPhones'])]
+    #[OA\Property(description: 'The unique identifier of the phone.')]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["getPhones"])]
+    #[Groups(['getPhones'])]
     private ?string $brand = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["getPhones"])]
+    #[Groups(['getPhones'])]
     private ?string $model = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(["getPhones"])]
-    private ?string $price = null;
+    #[Groups(['getPhones'])]
+    #[OA\Property(description: 'The price of the phone in cents.')]
+    #[OA\Property(type: 'int', maxLength: 255)]
+    private ?int $price = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[OA\Property(type: 'string', maxLength: 255)]
     private ?string $description = null;
 
     #[ORM\Column(length: 128, nullable: true)]
+    #[OA\Property(type: 'string', maxLength: 128)]
     private ?string $color = null;
 
     #[ORM\Column(length: 16, nullable: true)]
+    #[OA\Property(type: 'float', maxLength: 16)]
+    #[OA\Property(description: 'The height of the phone in centimeter.')]
     private ?float $height = null;
 
     #[ORM\Column(length: 16, nullable: true)]
+    #[OA\Property(type: 'float', maxLength: 16)]
+    #[OA\Property(description: 'The lenght of the phone in centimeter.')]
     private ?float $lenght = null;
 
     #[ORM\Column(length: 16, nullable: true)]
+    #[OA\Property(type: 'float', maxLength: 16)]
+    #[OA\Property(description: 'The thickness of the phone in centimeter.')]
     private ?float $thickness = null;
 
     public function getId(): ?int
@@ -83,12 +96,12 @@ class Phone
         return $this;
     }
 
-    public function getPrice(): ?string
+    public function getPrice(): ?int
     {
         return $this->price;
     }
 
-    public function setPrice(string $price): self
+    public function setPrice(int $price): self
     {
         $this->price = $price;
 

@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Repository;
 
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bridge\Doctrine\Security\User\UserLoaderInterface;
 
@@ -40,7 +43,10 @@ class UserRepository extends ServiceEntityRepository implements UserLoaderInterf
         }
     }
 
-    public function loadUserByIdentifier(string $email): ?User
+    /**
+     * @throws NonUniqueResultException
+     */
+    public function loadUserByIdentifier(string $identifier): ?User
     {
         $entityManager = $this->getEntityManager();
 
@@ -49,8 +55,9 @@ class UserRepository extends ServiceEntityRepository implements UserLoaderInterf
                 FROM App\Entity\User u
                 WHERE u.email = :query'
         )
-            ->setParameter('query', $email)
-            ->getOneOrNullResult();
+            ->setParameter('query', $identifier)
+            ->getOneOrNullResult()
+        ;
     }
 
 //    /**

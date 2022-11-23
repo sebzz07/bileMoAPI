@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Repository;
 
 use App\Entity\Customer;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -39,13 +42,12 @@ class CustomerRepository extends ServiceEntityRepository
         }
     }
 
-    public function findAllWithPagination($userId, $offset, $limit) {
-        $qb = $this->createQueryBuilder('b')
+    public function findAllQueryBuilder(int $userId): QueryBuilder
+    {
+        return $this->createQueryBuilder('b')
             ->andWhere('b.user = :user')
             ->setParameter('user', $userId)
-            ->setFirstResult(($offset - 1) * $limit)
-            ->setMaxResults($limit);
-        return $qb->getQuery()->getResult();
+        ;
     }
 
 //    /**
