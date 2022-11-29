@@ -16,20 +16,22 @@ This project has been developed under php 8.1 and symfony 6.1.
 
 2. Go to the root of the project.
 
-3. Generate your private/public key with this two Openssl commands line : 
+3. Create the folder ```config/jwt/```
+
+4. Generate your private/public key with this two Openssl commands line : 
 
 ```
 openssl genpkey -out config/jwt/private.pem -aes256 -algorithm rsa -pkeyopt rsa_keygen_bits:4096
 openssl pkey -in config/jwt/private.pem -out config/jwt/public.pem -pubout
 ```
 
-4. Create and fill out your own ```.env.*```
+5. Create and fill out your own ```.env.*```
 
-5. At the root of the project, install dependencies with composer:
+6. At the root of the project, install dependencies with composer:
 
 ```composer install```
 
-5. Create database and some fixtures via doctrine :
+7. Create database and some fixtures via doctrine :
 
 with the script :
 
@@ -42,7 +44,7 @@ or :
 "symfony console doctrine:fixtures:load -n"
 ```
 
-6. run local server :
+8. run local server :
 
 ````symfony server:start -d````
 
