@@ -16,7 +16,9 @@ This project has been developed under php 8.1 and symfony 6.1.
 
 2. Go to the root of the project.
 
+
 3. Create the folder ```config/jwt/```
+
 
 4. Generate your private/public key with this two Openssl commands line : 
 
@@ -26,6 +28,7 @@ openssl pkey -in config/jwt/private.pem -out config/jwt/public.pem -pubout
 ```
 
 5. Create and fill out your own ```.env.*```
+
 
 6. At the root of the project, install dependencies with composer:
 
@@ -57,7 +60,7 @@ Your can check the documentation to understand the api and to test it :
 
 ```https://localhost:8000/api/doc```
 
-you can use one of the nine accounts created with the fixtures or just 
+You can use one of the nine accounts created with the fixtures or just 
 follow token's route : ```https://localhost:8000/api/login_check```
 
 ```
@@ -65,6 +68,12 @@ emailofcompagny1@email.com//password
 ...
 emailofcompagny9@email.com//password
 ```
+
+You will find the token of your connection, copy it and click on the button "Authorize" at the top right of the page.
+
+In the field "Value" type : ```bearer "YourToken"```.
+
+Now your can use the API.
 
 Thank you
 
