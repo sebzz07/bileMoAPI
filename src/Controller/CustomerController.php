@@ -67,8 +67,8 @@ class CustomerController extends AbstractController
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
         }
 
-        $offset = intval($request->get('offset', 1));
-        $limit = intval($request->get('limit', 3));
+        $offset = $request->query->getInt('offset', 1);
+        $limit = $request->query->getInt('limit', 3);
 
         $idCache = 'getAllCustomers-'.$offset.'-'.$limit.'-userId'.$userId;
         $jsonCustomerList = $cachePool->get($idCache, function (ItemInterface $item) use ($customerRepository, $serializer, $offset, $limit, $userId) {

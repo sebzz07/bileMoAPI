@@ -56,8 +56,8 @@ class PhoneController extends AbstractController
     #[Route('/phones', name: 'phoneList', methods: ['GET'])]
     public function getPhoneList(Request $request, PhoneRepository $phoneRepository, SerializerInterface $serializer, TagAwareCacheInterface $cachePool): JsonResponse
     {
-        $offset = intval($request->get('offset', 1));
-        $limit = intval($request->get('limit', 3));
+        $offset = $request->query->getInt('offset', 1);
+        $limit = $request->query->getInt('limit', 3);
 
         $idCache = 'getAllCustomers-'.$offset.'-'.$limit;
 
