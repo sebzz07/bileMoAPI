@@ -71,7 +71,7 @@ emailofcompagny9@email.com//password
 
 You will find the token of your connection, copy it and click on the button "Authorize" at the top right of the page.
 
-In the field "Value" type : ```bearer "YourToken"```.
+In the field "Value" type : ```bearer YourToken```.
 
 Now your can use the API.
 
