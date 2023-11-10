@@ -23,8 +23,9 @@ This project has been developed under php 8.1 and symfony 6.1.
 4. Generate your private/public key with this two Openssl commands line : 
 
 ```
-openssl genpkey -out config/jwt/private.pem -aes256 -algorithm rsa -pkeyopt rsa_keygen_bits:4096
-openssl pkey -in config/jwt/private.pem -out config/jwt/public.pem -pubout
+php bin/console lexik:jwt:generate-keypair
+setfacl -R -m u:www-data:rX -m u:"$(whoami)":rwX config/jwt
+setfacl -dR -m u:www-data:rX -m u:"$(whoami)":rwX config/jwt
 ```
 
 5. Create and fill out your own ```.env.*```
